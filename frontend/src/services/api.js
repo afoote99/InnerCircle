@@ -110,11 +110,14 @@ export const fetchUserProfile = async (userId) => {
   }
 };
 
-export const sendConnectionRequest = async (userId, receiverUsername) => {
+export const sendConnectionRequest = async (
+  userId,
+  { receiverUsername, note }
+) => {
   try {
     const response = await axios.post(
       `${API_URL}/network/${userId}/request`,
-      { receiverUsername },
+      { receiverUsername, note },
       {
         headers: getAuthHeader(),
       }
@@ -160,13 +163,12 @@ export const declineConnectionRequest = async (userId, requestId) => {
 
 export const suggestConnection = async (
   userId,
-  user1Username,
-  user2Username
+  { user1Username, user2Username, note }
 ) => {
   try {
     const response = await axios.post(
       `${API_URL}/network/${userId}/suggest`,
-      { user1Username, user2Username },
+      { user1Username, user2Username, note },
       {
         headers: getAuthHeader(),
       }

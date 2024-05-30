@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { fetchQuestions } from "../services/api";
 import AnswerForm from "../components/AnswerForm";
+import { jwtDecode } from "jwt-decode";
 
 const QuestionFeed = () => {
   const [questions, setQuestions] = useState([]);
@@ -10,8 +11,13 @@ const QuestionFeed = () => {
       try {
         const token = localStorage.getItem("token");
         if (token) {
+          const decodedToken = jwtDecode(token);
+          const userId = decodedToken.userId;
           const questionsData = await fetchQuestions();
-          setQuestions(questionsData);
+          const filteredQuestions = questionsData.filter((question) =>
+            canUserSeeQuestion(question, userId)
+          );
+          setQuestions(filteredQuestions);
         } else {
           // Handle case when user is not logged in
           // Redirect to login page or display a message
@@ -24,11 +30,23 @@ const QuestionFeed = () => {
     fetchData();
   }, []);
 
+  const canUserSeeQuestion = (question, userId) => {
+    // Add your logic here to check if the user can see the question
+    // For example, check if the user is in the inner circle or 2+ connections
+    return true; // Replace with your actual logic
+  };
+
   const handleAnswerSubmitted = (questionId) => {
     const fetchData = async () => {
       try {
         const questionsData = await fetchQuestions();
-        setQuestions(questionsData);
+        const filteredQuestions = questionsData.filter((question) =>
+          canUserSeeQuestion(
+            question,
+            jwtDecode(localStorage.getItem("token")).userId
+          )
+        );
+        setQuestions(filteredQuestions);
       } catch (error) {
         console.error("Error fetching questions:", error);
       }

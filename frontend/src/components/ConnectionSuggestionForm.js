@@ -5,6 +5,7 @@ import { jwtDecode } from "jwt-decode";
 const ConnectionSuggestionForm = () => {
   const [user1Username, setUser1Username] = useState("");
   const [user2Username, setUser2Username] = useState("");
+  const [note, setNote] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -13,9 +14,10 @@ const ConnectionSuggestionForm = () => {
       if (token) {
         const decodedToken = jwtDecode(token);
         const userId = decodedToken.userId;
-        await suggestConnection(userId, user1Username, user2Username);
+        await suggestConnection(userId, { user1Username, user2Username, note });
         setUser1Username("");
         setUser2Username("");
+        setNote("");
         // Show success message or handle the response as needed
       } else {
         // Handle case when user is not logged in
@@ -42,6 +44,11 @@ const ConnectionSuggestionForm = () => {
         value={user2Username}
         onChange={(e) => setUser2Username(e.target.value)}
         required
+      />
+      <textarea
+        placeholder="Add a note (optional)"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
       />
       <button type="submit">Suggest Connection</button>
     </form>

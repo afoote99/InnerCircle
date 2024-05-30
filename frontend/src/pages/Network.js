@@ -21,7 +21,6 @@ const Network = () => {
           const decodedToken = jwtDecode(token);
           const userId = decodedToken.userId;
           const networkData = await fetchUserNetwork(userId);
-          console.log("Received Requests:", networkData.receivedRequests);
           setNetwork(networkData.connections || []);
           setReceivedRequests(networkData.receivedRequests || []);
         } else {
@@ -37,7 +36,6 @@ const Network = () => {
   }, []);
 
   const handleAcceptRequest = async (requestId) => {
-    console.log("Request ID:", requestId); // Check if requestId is undefined
     try {
       const token = localStorage.getItem("token");
       if (token) {

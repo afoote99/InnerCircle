@@ -4,6 +4,7 @@ import { jwtDecode } from "jwt-decode";
 
 const ConnectionRequestForm = () => {
   const [receiverUsername, setReceiverUsername] = useState("");
+  const [note, setNote] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -12,8 +13,9 @@ const ConnectionRequestForm = () => {
       if (token) {
         const decodedToken = jwtDecode(token);
         const userId = decodedToken.userId;
-        await sendConnectionRequest(userId, receiverUsername);
+        await sendConnectionRequest(userId, { receiverUsername, note });
         setReceiverUsername("");
+        setNote("");
         // Show success message or handle the response as needed
       } else {
         // Handle case when user is not logged in
@@ -33,6 +35,11 @@ const ConnectionRequestForm = () => {
         value={receiverUsername}
         onChange={(e) => setReceiverUsername(e.target.value)}
         required
+      />
+      <textarea
+        placeholder="Add a note (optional)"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
       />
       <button type="submit">Send Request</button>
     </form>

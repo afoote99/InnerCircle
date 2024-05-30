@@ -7,6 +7,7 @@ const CreateQuestion = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -16,7 +17,7 @@ const CreateQuestion = () => {
       if (token) {
         const decodedToken = jwtDecode(token);
         const userId = decodedToken.userId;
-        await createQuestion({ title, content, category, userId });
+        await createQuestion({ title, content, category, userId, isAnonymous });
         navigate("/questions");
       } else {
         // Handle case when user is not logged in
@@ -54,6 +55,14 @@ const CreateQuestion = () => {
             type="text"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
+          />
+        </div>
+        <div>
+          <label>Post Anonymously:</label>
+          <input
+            type="checkbox"
+            checked={isAnonymous}
+            onChange={(e) => setIsAnonymous(e.target.checked)}
           />
         </div>
         <button type="submit">Create Question</button>

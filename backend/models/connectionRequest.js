@@ -18,6 +18,10 @@ const ConnectionRequest = sequelize.define("ConnectionRequest", {
     allowNull: false,
     defaultValue: DataTypes.NOW,
   },
+  note: {
+    type: DataTypes.TEXT, // Add this line
+    allowNull: true,
+  },
 });
 
 User.hasMany(ConnectionRequest, {

@@ -130,7 +130,7 @@ router.put("/:userId", async (req, res) => {
 router.post("/:userId/request", async (req, res) => {
   try {
     const { userId } = req.params;
-    const { receiverUsername } = req.body;
+    const { receiverUsername, note } = req.body;
 
     // Find the receiver user by username
     const receiver = await User.findOne({
@@ -152,10 +152,11 @@ router.post("/:userId/request", async (req, res) => {
       return res.status(400).json({ error: "Connection request already sent" });
     }
 
-    // Create a new connection request
+    // Create a new connection request with a note
     const newRequest = await ConnectionRequest.create({
       sender_id: userId,
       receiver_id: receiver.userId, // Use 'userId' instead of 'user_id'
+      note: note, // Include the note
     });
 
     res.status(201).json(newRequest);
@@ -240,7 +241,7 @@ router.put("/:userId/request/:requestId/decline", async (req, res) => {
 router.post("/:userId/suggest", async (req, res) => {
   try {
     const { userId } = req.params;
-    const { user1Username, user2Username } = req.body;
+    const { user1Username, user2Username, note } = req.body;
 
     // Find the users by username
     const user1 = await User.findOne({ where: { username: user1Username } });
@@ -253,16 +254,16 @@ router.post("/:userId/suggest", async (req, res) => {
     const isConnectedToUser1 = await Connection.findOne({
       where: {
         [Op.or]: [
-          { userId_1: userId, userId_2: user1.userId },
-          { userId_1: user1.userId, userId_2: userId },
+          { user_id_1: userId, user_id_2: user1.userId },
+          { user_id_1: user1.userId, user_id_2: userId },
         ],
       },
     });
     const isConnectedToUser2 = await Connection.findOne({
       where: {
         [Op.or]: [
-          { userId_1: userId, userId_2: user2.userId },
-          { userId_1: user2.userId, userId_2: userId },
+          { user_id_1: userId, user_id_2: user2.userId },
+          { user_id_1: user2.userId, user_id_2: userId },
         ],
       },
     });
@@ -272,14 +273,16 @@ router.post("/:userId/suggest", async (req, res) => {
       });
     }
 
-    // Create connection requests for both users
+    // Create connection requests for both users with a note
     await ConnectionRequest.create({
-      sender_id: user1.userId,
-      receiver_id: user2.userId,
+      sender_id: userId,
+      receiver_id: user1.userId,
+      note: note, // Include the note
     });
     await ConnectionRequest.create({
-      sender_id: user2.userId,
-      receiver_id: user1.userId,
+      sender_id: userId,
+      receiver_id: user2.userId,
+      note: note, // Include the note
     });
 
     res.status(201).json({ message: "Connection suggestion sent" });

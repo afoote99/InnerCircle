@@ -40,6 +40,12 @@ const Connection = sequelize.define(
     tableName: "Connections",
     underscored: true,
     timestamps: true,
+    indexes: [
+      {
+        unique: true,
+        fields: ["user_id_1", "user_id_2"],
+      },
+    ],
   }
 );
 
