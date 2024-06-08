@@ -3,6 +3,7 @@ const router = express.Router();
 const Question = require("../models/question");
 const Answer = require("../models/answer");
 const User = require("../models/user");
+const Connection = require("../models/connection");
 
 // Create a new question
 router.post("/", async (req, res) => {
@@ -13,7 +14,7 @@ router.post("/", async (req, res) => {
       content,
       category,
       user_id: userId,
-      is_anonymous: isAnonymous, // Use the value directly from the request body
+      is_anonymous: isAnonymous,
     });
     res.status(201).json(question);
   } catch (error) {
@@ -37,16 +38,22 @@ router.get("/", async (req, res) => {
           include: [
             {
               model: Connection,
-              as: "connections",
+              as: "connectionsInitiated", // Specify the alias for this association
+              include: [
+                {
+                  model: User,
+                  as: "user2",
+                  attributes: ["userId", "username"],
+                },
+              ],
+            },
+            {
+              model: Connection,
+              as: "connectionsReceived", // Specify the alias for this association
               include: [
                 {
                   model: User,
                   as: "user1",
-                  attributes: ["userId", "username"],
-                },
-                {
-                  model: User,
-                  as: "user2",
                   attributes: ["userId", "username"],
                 },
               ],
@@ -65,9 +72,10 @@ router.get("/", async (req, res) => {
     res.status(200).json(questions);
   } catch (error) {
     console.error("Error retrieving questions:", error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while retrieving the questions" });
+    res.status(500).json({
+      error: "An error occurred while retrieving the questions",
+      details: error.message,
+    });
   }
 });
 

@@ -225,17 +225,33 @@ router.put("/:userId/request/:requestId/accept", async (req, res) => {
     request.status = "accepted";
     await request.save();
 
-    // Check if the corresponding request for the other user is also accepted
-    const correspondingRequest = await ConnectionRequest.findOne({
-      where: {
-        sender_id: request.receiver_id,
-        receiver_id: request.sender_id,
-        status: "accepted",
-      },
-    });
+    if (request.suggester_id) {
+      // If it's a suggested connection, check if the corresponding request for the other user is also accepted
+      const correspondingRequest = await ConnectionRequest.findOne({
+        where: {
+          sender_id: request.receiver_id,
+          receiver_id: request.sender_id,
+          status: "accepted",
+          suggester_id: request.suggester_id,
+        },
+      });
 
-    if (correspondingRequest) {
-      // Create a new connection if both requests are accepted
+      if (correspondingRequest) {
+        // Create a new connection if both requests are accepted
+        const newConnection = await Connection.create({
+          user_id_1: request.sender_id,
+          user_id_2: request.receiver_id,
+          status: "accepted",
+          connected_since: new Date(),
+        });
+        res.status(200).json(newConnection);
+      } else {
+        res
+          .status(200)
+          .json({ message: "Suggested connection request accepted" });
+      }
+    } else {
+      // If it's a normal connection request, create the connection immediately
       const newConnection = await Connection.create({
         user_id_1: request.sender_id,
         user_id_2: request.receiver_id,
@@ -243,8 +259,6 @@ router.put("/:userId/request/:requestId/accept", async (req, res) => {
         connected_since: new Date(),
       });
       res.status(200).json(newConnection);
-    } else {
-      res.status(200).json({ message: "Connection request accepted" });
     }
   } catch (error) {
     console.error("Error accepting connection request:", error);

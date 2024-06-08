@@ -31,14 +31,16 @@ const QuestionFeed = () => {
   }, []);
 
   const canUserSeeQuestion = (question, userId) => {
-    // Check if the user is the author of the question or connected to the question author
+    // Check if the user is the author of the question
     const isAuthor = question.user.userId === userId;
+
+    // Check if the user is connected to the question author
     const isConnected =
-      question.user.connections &&
-      question.user.connections.some(
-        (connection) =>
-          connection.user1.userId === userId ||
-          connection.user2.userId === userId
+      question.user.connectionsInitiated.some(
+        (connection) => connection.user2.userId === userId
+      ) ||
+      question.user.connectionsReceived.some(
+        (connection) => connection.user1.userId === userId
       );
 
     return isAuthor || isConnected;
