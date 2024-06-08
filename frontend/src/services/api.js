@@ -60,9 +60,9 @@ export const createQuestion = async (questionData) => {
   }
 };
 
-export const fetchQuestions = async () => {
+export const fetchQuestions = async (userId) => {
   try {
-    const response = await axios.get(`${API_URL}/questions`, {
+    const response = await axios.get(`${API_URL}/questions?userId=${userId}`, {
       headers: getAuthHeader(),
     });
     return response.data;

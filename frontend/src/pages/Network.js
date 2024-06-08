@@ -96,8 +96,8 @@ const Network = () => {
       {receivedRequests &&
         receivedRequests.map((request) => (
           <div key={request.requestId}>
-            <p>Suggested by: {request.suggester.username}</p>
-            <p>Suggested connection: {request.sender.username}</p>
+            <p>Suggested by: {request.suggester?.username || "Unknown"}</p>
+            <p>Suggested connection: {request.sender?.username || "Unknown"}</p>
             <p>Note: {request.note}</p>
             <button onClick={() => handleAcceptRequest(request.requestId)}>
               Accept

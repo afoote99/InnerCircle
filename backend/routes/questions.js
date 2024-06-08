@@ -13,7 +13,7 @@ router.post("/", async (req, res) => {
       content,
       category,
       user_id: userId,
-      is_anonymous: isAnonymous === "true", // Convert the string value to boolean
+      is_anonymous: isAnonymous, // Use the value directly from the request body
     });
     res.status(201).json(question);
   } catch (error) {
@@ -27,9 +27,32 @@ router.post("/", async (req, res) => {
 // Get all questions with associated user and answers
 router.get("/", async (req, res) => {
   try {
+    const { userId } = req.query;
     const questions = await Question.findAll({
       include: [
-        { model: User, as: "user", attributes: ["userId", "username"] },
+        {
+          model: User,
+          as: "user",
+          attributes: ["userId", "username"],
+          include: [
+            {
+              model: Connection,
+              as: "connections",
+              include: [
+                {
+                  model: User,
+                  as: "user1",
+                  attributes: ["userId", "username"],
+                },
+                {
+                  model: User,
+                  as: "user2",
+                  attributes: ["userId", "username"],
+                },
+              ],
+            },
+          ],
+        },
         {
           model: Answer,
           as: "answers",

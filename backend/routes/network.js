@@ -210,7 +210,6 @@ router.post("/:userId/request", async (req, res) => {
 // Accept a connection request
 router.put("/:userId/request/:requestId/accept", async (req, res) => {
   const { userId, requestId } = req.params;
-  console.log("User ID:", userId, "Request ID:", requestId); // Check what is received
 
   try {
     // Find the connection request that is pending and matches the receiver ID
@@ -222,32 +221,31 @@ router.put("/:userId/request/:requestId/accept", async (req, res) => {
       return res.status(404).json({ error: "Connection request not found" });
     }
 
-    const existingConnection = await Connection.findOne({
-      where: {
-        [Op.or]: [
-          { user_id_1: request.sender_id, user_id_2: request.receiver_id },
-          { user_id_1: request.receiver_id, user_id_2: request.sender_id },
-        ],
-      },
-    });
-
-    if (existingConnection) {
-      return res.status(400).json({ error: "Connection already exists" });
-    }
-
     // Update the request status to "accepted"
     request.status = "accepted";
     await request.save();
 
-    // Create a new connection based on the accepted request
-    const newConnection = await Connection.create({
-      user_id_1: request.sender_id,
-      user_id_2: request.receiver_id,
-      status: "accepted",
-      connected_since: new Date(), // Ensure to set the connected_since date
+    // Check if the corresponding request for the other user is also accepted
+    const correspondingRequest = await ConnectionRequest.findOne({
+      where: {
+        sender_id: request.receiver_id,
+        receiver_id: request.sender_id,
+        status: "accepted",
+      },
     });
 
-    res.status(200).json(newConnection);
+    if (correspondingRequest) {
+      // Create a new connection if both requests are accepted
+      const newConnection = await Connection.create({
+        user_id_1: request.sender_id,
+        user_id_2: request.receiver_id,
+        status: "accepted",
+        connected_since: new Date(),
+      });
+      res.status(200).json(newConnection);
+    } else {
+      res.status(200).json({ message: "Connection request accepted" });
+    }
   } catch (error) {
     console.error("Error accepting connection request:", error);
     res.status(500).json({
@@ -317,6 +315,20 @@ router.post("/:userId/suggest", async (req, res) => {
       return res.status(400).json({
         error: "You must be connected to both users to suggest a connection",
       });
+    }
+
+    // Check if a connection already exists between the users
+    const existingConnection = await Connection.findOne({
+      where: {
+        [Op.or]: [
+          { user_id_1: user1.userId, user_id_2: user2.userId },
+          { user_id_1: user2.userId, user_id_2: user1.userId },
+        ],
+      },
+    });
+
+    if (existingConnection) {
+      return res.status(400).json({ error: "Users are already connected" });
     }
 
     // Create connection requests for both users with a note and the suggesting user's ID

@@ -13,7 +13,7 @@ const QuestionFeed = () => {
         if (token) {
           const decodedToken = jwtDecode(token);
           const userId = decodedToken.userId;
-          const questionsData = await fetchQuestions();
+          const questionsData = await fetchQuestions(userId); // Pass the userId to the API
           const filteredQuestions = questionsData.filter((question) =>
             canUserSeeQuestion(question, userId)
           );
@@ -33,10 +33,13 @@ const QuestionFeed = () => {
   const canUserSeeQuestion = (question, userId) => {
     // Check if the user is the author of the question or connected to the question author
     const isAuthor = question.user.userId === userId;
-    const isConnected = question.user.connections.some(
-      (connection) =>
-        connection.user1.userId === userId || connection.user2.userId === userId
-    );
+    const isConnected =
+      question.user.connections &&
+      question.user.connections.some(
+        (connection) =>
+          connection.user1.userId === userId ||
+          connection.user2.userId === userId
+      );
 
     return isAuthor || isConnected;
   };
