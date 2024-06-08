@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { answerQuestion } from "../services/api";
+import { jwtDecode } from "jwt-decode";
 
 const AnswerForm = ({ questionId, onAnswerSubmitted }) => {
   const [content, setContent] = useState("");
@@ -7,11 +8,17 @@ const AnswerForm = ({ questionId, onAnswerSubmitted }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // TODO: Get the logged-in user's ID (you can store it in the application state after login)
-      const userId = 1; // Hardcoded for now
-      await answerQuestion(questionId, { content, userId });
-      setContent("");
-      onAnswerSubmitted();
+      const token = localStorage.getItem("token");
+      if (token) {
+        const decodedToken = jwtDecode(token);
+        const userId = decodedToken.userId;
+        await answerQuestion(questionId, { content, userId });
+        setContent("");
+        onAnswerSubmitted();
+      } else {
+        // Handle case when user is not logged in
+        // Redirect to login page or display a message
+      }
     } catch (error) {
       console.error("Error answering question:", error);
     }

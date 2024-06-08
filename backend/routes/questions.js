@@ -13,7 +13,7 @@ router.post("/", async (req, res) => {
       content,
       category,
       user_id: userId,
-      is_anonymous: isAnonymous, // Add the is_anonymous flag to the question
+      is_anonymous: isAnonymous === "true", // Convert the string value to boolean
     });
     res.status(201).json(question);
   } catch (error) {

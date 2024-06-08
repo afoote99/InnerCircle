@@ -55,6 +55,11 @@ router.get("/:userId", async (req, res) => {
           as: "sender",
           attributes: ["user_id", "username"],
         },
+        {
+          model: User,
+          as: "suggester",
+          attributes: ["user_id", "username"],
+        },
       ],
     });
 
@@ -68,7 +73,13 @@ router.get("/:userId", async (req, res) => {
           userId: req.sender.user_id,
           username: req.sender.username,
         },
-        note: req.note, // Include the note in the response
+        note: req.note,
+        suggester: req.suggester
+          ? {
+              userId: req.suggester.user_id,
+              username: req.suggester.username,
+            }
+          : null,
       })),
     });
   } catch (error) {
@@ -141,7 +152,16 @@ router.post("/:userId/request", async (req, res) => {
       return res.status(404).json({ error: "Receiver user not found" });
     }
 
-    // Check if a connection request already exists
+    // Check if a connection or request already exists between the users
+    const existingConnection = await Connection.findOne({
+      where: {
+        [Op.or]: [
+          { user_id_1: userId, user_id_2: receiver.userId },
+          { user_id_1: receiver.userId, user_id_2: userId },
+        ],
+      },
+    });
+
     const existingRequest = await ConnectionRequest.findOne({
       where: {
         [Op.or]: [
@@ -159,10 +179,10 @@ router.post("/:userId/request", async (req, res) => {
       },
     });
 
-    if (existingRequest) {
+    if (existingConnection || existingRequest) {
       return res
         .status(400)
-        .json({ error: "Connection request already exists" });
+        .json({ error: "Connection or request already exists" });
     }
 
     // Create a new connection request with a note
@@ -299,16 +319,18 @@ router.post("/:userId/suggest", async (req, res) => {
       });
     }
 
-    // Create connection requests for both users with a note
+    // Create connection requests for both users with a note and the suggesting user's ID
     await ConnectionRequest.create({
-      sender_id: userId,
-      receiver_id: user1.userId,
-      note: note, // Include the note
+      sender_id: user1.userId,
+      receiver_id: user2.userId,
+      note: note,
+      suggester_id: userId, // Store the suggesting user's ID
     });
     await ConnectionRequest.create({
-      sender_id: userId,
-      receiver_id: user2.userId,
-      note: note, // Include the note
+      sender_id: user2.userId,
+      receiver_id: user1.userId,
+      note: note,
+      suggester_id: userId, // Store the suggesting user's ID
     });
 
     res.status(201).json({ message: "Connection suggestion sent" });

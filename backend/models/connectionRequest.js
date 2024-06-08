@@ -22,6 +22,23 @@ const ConnectionRequest = sequelize.define("ConnectionRequest", {
     type: DataTypes.TEXT, // Add this line
     allowNull: true,
   },
+  suggester_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: User,
+      key: "user_id",
+    },
+  },
+});
+
+User.hasMany(ConnectionRequest, {
+  foreignKey: "suggester_id",
+  as: "suggestedRequests",
+});
+ConnectionRequest.belongsTo(User, {
+  foreignKey: "suggester_id",
+  as: "suggester",
 });
 
 User.hasMany(ConnectionRequest, {

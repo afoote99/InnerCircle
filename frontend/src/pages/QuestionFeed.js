@@ -31,9 +31,14 @@ const QuestionFeed = () => {
   }, []);
 
   const canUserSeeQuestion = (question, userId) => {
-    // Add your logic here to check if the user can see the question
-    // For example, check if the user is in the inner circle or 2+ connections
-    return true; // Replace with your actual logic
+    // Check if the user is the author of the question or connected to the question author
+    const isAuthor = question.user.userId === userId;
+    const isConnected = question.user.connections.some(
+      (connection) =>
+        connection.user1.userId === userId || connection.user2.userId === userId
+    );
+
+    return isAuthor || isConnected;
   };
 
   const handleAnswerSubmitted = (questionId) => {
