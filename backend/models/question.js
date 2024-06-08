@@ -26,6 +26,12 @@ const Question = sequelize.define("Question", {
     defaultValue: DataTypes.NOW,
     field: "posted_date",
   },
+  isAnonymous: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    field: "is_anonymous",
+  },
 });
 
 User.hasMany(Question, {

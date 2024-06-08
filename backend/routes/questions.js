@@ -7,12 +7,13 @@ const User = require("../models/user");
 // Create a new question
 router.post("/", async (req, res) => {
   try {
-    const { title, content, category, userId } = req.body;
+    const { title, content, category, userId, isAnonymous } = req.body;
     const question = await Question.create({
       title,
       content,
       category,
       user_id: userId,
+      is_anonymous: isAnonymous, // Add the is_anonymous flag to the question
     });
     res.status(201).json(question);
   } catch (error) {

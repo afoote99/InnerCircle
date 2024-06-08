@@ -97,6 +97,7 @@ const Network = () => {
         receivedRequests.map((request) => (
           <div key={request.requestId}>
             <p>From: {request.sender.username}</p>
+            <p>Note: {request.note}</p> {/* Display the note */}
             <button onClick={() => handleAcceptRequest(request.requestId)}>
               Accept
             </button>

@@ -63,7 +63,10 @@ const QuestionFeed = () => {
           <h3>{question.title}</h3>
           <p>{question.content}</p>
           <p>Category: {question.category}</p>
-          <p>Asked by: {question.user.username}</p>
+          <p>
+            Asked by:{" "}
+            {question.isAnonymous ? "Anonymous" : question.user.username}
+          </p>
           <h4>Answers:</h4>
           {question.answers.map((answer) => (
             <div key={answer.answerId}>

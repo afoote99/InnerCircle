@@ -68,6 +68,7 @@ router.get("/:userId", async (req, res) => {
           userId: req.sender.user_id,
           username: req.sender.username,
         },
+        note: req.note, // Include the note in the response
       })),
     });
   } catch (error) {
@@ -143,13 +144,25 @@ router.post("/:userId/request", async (req, res) => {
     // Check if a connection request already exists
     const existingRequest = await ConnectionRequest.findOne({
       where: {
-        sender_id: userId,
-        receiver_id: receiver.userId, // Use 'userId' instead of 'user_id'
-        status: "pending",
+        [Op.or]: [
+          {
+            sender_id: userId,
+            receiver_id: receiver.userId,
+            status: "pending",
+          },
+          {
+            sender_id: receiver.userId,
+            receiver_id: userId,
+            status: "pending",
+          },
+        ],
       },
     });
+
     if (existingRequest) {
-      return res.status(400).json({ error: "Connection request already sent" });
+      return res
+        .status(400)
+        .json({ error: "Connection request already exists" });
     }
 
     // Create a new connection request with a note
@@ -187,6 +200,19 @@ router.put("/:userId/request/:requestId/accept", async (req, res) => {
 
     if (!request) {
       return res.status(404).json({ error: "Connection request not found" });
+    }
+
+    const existingConnection = await Connection.findOne({
+      where: {
+        [Op.or]: [
+          { user_id_1: request.sender_id, user_id_2: request.receiver_id },
+          { user_id_1: request.receiver_id, user_id_2: request.sender_id },
+        ],
+      },
+    });
+
+    if (existingConnection) {
+      return res.status(400).json({ error: "Connection already exists" });
     }
 
     // Update the request status to "accepted"
