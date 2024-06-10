@@ -17,7 +17,13 @@ const CreateQuestion = () => {
       if (token) {
         const decodedToken = jwtDecode(token);
         const userId = decodedToken.userId;
-        await createQuestion({ title, content, category, userId, isAnonymous });
+        await createQuestion({
+          title,
+          content,
+          category,
+          userId,
+          isAnonymous,
+        });
         navigate("/questions");
       } else {
         // Handle case when user is not logged in

@@ -9,13 +9,17 @@ const Connection = require("../models/connection");
 router.post("/", async (req, res) => {
   try {
     const { title, content, category, userId, isAnonymous } = req.body;
+    console.log("Received isAnonymous value:", isAnonymous);
+    console.log("Type of isAnonymous value:", typeof isAnonymous);
     const question = await Question.create({
       title,
       content,
       category,
       user_id: userId,
-      is_anonymous: isAnonymous,
+      is_anonymous: isAnonymous === true, // Explicitly set the isAnonymous value
+      posted_date: new Date(),
     });
+    console.log("Created question with is_anonymous:", question.is_anonymous);
     res.status(201).json(question);
   } catch (error) {
     console.error("Error creating question:", error);

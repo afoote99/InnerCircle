@@ -50,9 +50,16 @@ export const logout = () => {
 
 export const createQuestion = async (questionData) => {
   try {
-    const response = await axios.post(`${API_URL}/questions`, questionData, {
-      headers: getAuthHeader(),
-    });
+    const response = await axios.post(
+      `${API_URL}/questions`,
+      {
+        ...questionData,
+        isAnonymous: questionData.isAnonymous === "true",
+      },
+      {
+        headers: getAuthHeader(),
+      }
+    );
     return response.data;
   } catch (error) {
     console.error("Error creating question:", error);
