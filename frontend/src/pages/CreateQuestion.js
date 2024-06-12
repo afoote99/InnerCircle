@@ -27,7 +27,6 @@ const CreateQuestion = () => {
         navigate("/questions");
       } else {
         // Handle case when user is not logged in
-        // Redirect to login page or display a message
       }
     } catch (error) {
       console.error("Error creating question:", error);
@@ -63,6 +62,7 @@ const CreateQuestion = () => {
             onChange={(e) => setCategory(e.target.value)}
           />
         </div>
+        {/* Commenting out anonymous posting section
         <div>
           <label>Post Anonymously:</label>
           <input
@@ -71,6 +71,7 @@ const CreateQuestion = () => {
             onChange={(e) => setIsAnonymous(e.target.checked)}
           />
         </div>
+        */}
         <button type="submit">Create Question</button>
       </form>
     </div>

@@ -11,14 +11,19 @@ router.post("/", async (req, res) => {
     const { title, content, category, userId, isAnonymous } = req.body;
     console.log("Received isAnonymous value:", isAnonymous);
     console.log("Type of isAnonymous value:", typeof isAnonymous);
-    const question = await Question.create({
+
+    const questionData = {
       title,
       content,
       category,
       user_id: userId,
-      is_anonymous: isAnonymous === true, // Explicitly set the isAnonymous value
+      is_anonymous: isAnonymous, // Directly assign the value
       posted_date: new Date(),
-    });
+    };
+    console.log("Question data to be created:", questionData);
+
+    const question = await Question.create(questionData);
+
     console.log("Created question with is_anonymous:", question.is_anonymous);
     res.status(201).json(question);
   } catch (error) {
@@ -28,7 +33,6 @@ router.post("/", async (req, res) => {
       .json({ error: "An error occurred while creating the question" });
   }
 });
-
 // Get all questions with associated user and answers
 router.get("/", async (req, res) => {
   try {

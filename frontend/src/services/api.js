@@ -52,10 +52,7 @@ export const createQuestion = async (questionData) => {
   try {
     const response = await axios.post(
       `${API_URL}/questions`,
-      {
-        ...questionData,
-        isAnonymous: questionData.isAnonymous === "true",
-      },
+      questionData, // Directly pass the questionData
       {
         headers: getAuthHeader(),
       }
