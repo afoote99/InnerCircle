@@ -8,6 +8,7 @@ import Profile from "./pages/Profile";
 import Network from "./pages/Network";
 import QuestionFeed from "./pages/QuestionFeed";
 import CreateQuestion from "./pages/CreateQuestion";
+import QuestionDetail from "./pages/QuestionDetail";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/network" element={<Network />} />
           <Route path="/questions" element={<QuestionFeed />} />
           <Route path="/questions/create" element={<CreateQuestion />} />
+          <Route path="/questions/:questionId" element={<QuestionDetail />} />
         </Routes>
       </div>
     </Router>

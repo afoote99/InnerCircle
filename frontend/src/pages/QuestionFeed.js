@@ -1,96 +1,65 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { fetchQuestions } from "../services/api";
-import AnswerForm from "../components/AnswerForm";
 import { jwtDecode } from "jwt-decode";
+import {
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Container,
+  Grid,
+} from "@mui/material";
 
 const QuestionFeed = () => {
   const [questions, setQuestions] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (token) {
-          const decodedToken = jwtDecode(token);
-          const userId = decodedToken.userId;
-          const questionsData = await fetchQuestions(userId); // Pass the userId to the API
-          const filteredQuestions = questionsData.filter((question) =>
-            canUserSeeQuestion(question, userId)
-          );
-          setQuestions(filteredQuestions);
-        } else {
-          // Handle case when user is not logged in
-          // Redirect to login page or display a message
-        }
-      } catch (error) {
-        console.error("Error fetching questions:", error);
+      const token = localStorage.getItem("token");
+      if (token) {
+        const decodedToken = jwtDecode(token);
+        const userId = decodedToken.userId;
+        const questionsData = await fetchQuestions(userId);
+        setQuestions(questionsData);
+      } else {
+        navigate("/login");
       }
     };
 
     fetchData();
-  }, []);
-
-  const canUserSeeQuestion = (question, userId) => {
-    // Check if the user is the author of the question
-    const isAuthor = question.user.userId === userId;
-
-    // Check if the user is connected to the question author
-    const isConnected =
-      question.user.connectionsInitiated.some(
-        (connection) => connection.user2.userId === userId
-      ) ||
-      question.user.connectionsReceived.some(
-        (connection) => connection.user1.userId === userId
-      );
-
-    return isAuthor || isConnected;
-  };
-
-  const handleAnswerSubmitted = (questionId) => {
-    const fetchData = async () => {
-      try {
-        const questionsData = await fetchQuestions();
-        const filteredQuestions = questionsData.filter((question) =>
-          canUserSeeQuestion(
-            question,
-            jwtDecode(localStorage.getItem("token")).userId
-          )
-        );
-        setQuestions(filteredQuestions);
-      } catch (error) {
-        console.error("Error fetching questions:", error);
-      }
-    };
-
-    fetchData();
-  };
+  }, [navigate]);
 
   return (
-    <div>
-      <h2>Question Feed</h2>
-      {questions.map((question) => (
-        <div key={question.questionId}>
-          <h3>{question.title}</h3>
-          <p>{question.content}</p>
-          <p>Category: {question.category}</p>
-          <p>
-            Asked by:{" "}
-            {question.isAnonymous ? "Anonymous" : question.user.username}
-          </p>
-          <h4>Answers:</h4>
-          {question.answers.map((answer) => (
-            <div key={answer.answerId}>
-              <p>{answer.content}</p>
-              <p>Answered by: {answer.user.username}</p>
-            </div>
-          ))}
-          <AnswerForm
-            questionId={question.questionId}
-            onAnswerSubmitted={() => handleAnswerSubmitted(question.questionId)}
-          />
-        </div>
-      ))}
-    </div>
+    <Container maxWidth="md">
+      <Typography variant="h4" gutterBottom>
+        Question Feed
+      </Typography>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => navigate("/questions/create")}
+      >
+        Make a Post
+      </Button>
+      <Grid container spacing={2} style={{ marginTop: "20px" }}>
+        {questions.map((question) => (
+          <Grid item xs={12} md={6} key={question.questionId}>
+            <Card onClick={() => navigate(`/questions/${question.questionId}`)}>
+              <CardContent>
+                <Typography variant="h5">{question.title}</Typography>
+                <Typography variant="body2">{question.content}</Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Asked by:{" "}
+                  {question.isAnonymous ? "Anonymous" : question.user.username}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Container>
   );
 };
 

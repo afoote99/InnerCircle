@@ -1,30 +1,24 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { AppBar, Toolbar, Typography, Button } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
+  const navigate = useNavigate();
+
   return (
-    <nav>
-      <ul>
-        <li>
-          <Link to="/">Home</Link>
-        </li>
-        <li>
-          <Link to="/profile">Profile</Link>
-        </li>
-        <li>
-          <Link to="/network">Network</Link>
-        </li>
-        <li>
-          <Link to="/questions">Questions</Link>
-        </li>
-        <li>
-          <Link to="/questions/create">Post</Link>
-        </li>
-        <li>
-          <Link to="/login">Login</Link>
-        </li>
-      </ul>
-    </nav>
+    <AppBar position="static">
+      <Toolbar>
+        <Button color="inherit" onClick={() => navigate("/questions")}>
+          Home
+        </Button>
+        <Button color="inherit" onClick={() => navigate("/network")}>
+          Connections
+        </Button>
+        <Button color="inherit" onClick={() => navigate("/profile")}>
+          Profile
+        </Button>
+      </Toolbar>
+    </AppBar>
   );
 };
 

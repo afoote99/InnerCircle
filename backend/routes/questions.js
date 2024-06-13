@@ -106,4 +106,38 @@ router.post("/:questionId/answer", async (req, res) => {
   }
 });
 
+// Fetch a single question by ID
+router.get("/:questionId", async (req, res) => {
+  try {
+    const question = await Question.findByPk(req.params.questionId, {
+      include: [
+        {
+          model: User,
+          as: "user", // Match the alias used in the association
+          attributes: ["username"],
+        },
+        {
+          model: Answer,
+          as: "answers", // Match the alias used in the association
+          include: [
+            {
+              model: User,
+              as: "user", // Match the alias used in the association
+              attributes: ["username"],
+            },
+          ],
+        },
+      ],
+    });
+    if (question) {
+      res.json(question);
+    } else {
+      res.status(404).send("Question not found");
+    }
+  } catch (error) {
+    console.error("Error fetching specific question:", error);
+    res.status(500).json({ message: "Error fetching question" });
+  }
+});
+
 module.exports = router;

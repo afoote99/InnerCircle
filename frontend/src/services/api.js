@@ -184,4 +184,16 @@ export const suggestConnection = async (
   }
 };
 
+export const fetchQuestionById = async (questionId) => {
+  try {
+    const response = await axios.get(`${API_URL}/questions/${questionId}`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching specific question:", error);
+    throw error;
+  }
+};
+
 // Add more API service functions for other endpoints (e.g., questions, network)
