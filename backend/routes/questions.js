@@ -136,7 +136,15 @@ router.post("/:questionId/answer", async (req, res) => {
       user_id: userId,
       question_id: questionId,
     });
-    res.status(201).json(answer);
+    const answerWithUser = await Answer.findByPk(answer.answerId, {
+      include: [
+        { model: User, as: "user", attributes: ["userId", "username"] },
+      ],
+    });
+    if (!answerWithUser) {
+      throw new Error("Failed to retrieve created answer");
+    }
+    res.status(201).json(answerWithUser);
   } catch (error) {
     console.error("Error answering question:", error);
     res
@@ -150,20 +158,12 @@ router.get("/:questionId", async (req, res) => {
   try {
     const question = await Question.findByPk(req.params.questionId, {
       include: [
-        {
-          model: User,
-          as: "user", // Match the alias used in the association
-          attributes: ["username"],
-        },
+        { model: User, as: "user", attributes: ["userId", "username"] },
         {
           model: Answer,
-          as: "answers", // Match the alias used in the association
+          as: "answers",
           include: [
-            {
-              model: User,
-              as: "user", // Match the alias used in the association
-              attributes: ["username"],
-            },
+            { model: User, as: "user", attributes: ["userId", "username"] },
           ],
         },
       ],

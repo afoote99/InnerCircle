@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -6,43 +7,62 @@ import {
   Container,
   TextField,
   Button,
+  CircularProgress,
 } from "@mui/material";
+import { fetchQuestionById, answerQuestion } from "../services/api";
+import { jwtDecode } from "jwt-decode";
 
-const QuestionDetail = ({ question }) => {
-  const [newAnswer, setNewAnswer] = React.useState("");
-  const [answers, setAnswers] = React.useState(question.answers || []);
+const QuestionDetail = () => {
+  const [question, setQuestion] = useState(null);
+  const [newAnswer, setNewAnswer] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { questionId } = useParams();
 
-  const handleAddAnswer = async () => {
+  const loadQuestion = async () => {
     try {
-      const response = await fetch(
-        `/api/questions/${question.questionId}/answer`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            content: newAnswer,
-            userId: localStorage.getItem("userId"),
-          }),
-        }
-      );
-      const data = await response.json();
-      if (response.ok) {
-        setAnswers([...answers, data]);
-        setNewAnswer("");
-      } else {
-        throw new Error(data.message);
-      }
-    } catch (error) {
-      console.error("Error posting answer:", error);
+      const data = await fetchQuestionById(questionId);
+      setQuestion(data);
+      setLoading(false);
+    } catch (err) {
+      setError("Failed to load question");
+      setLoading(false);
     }
   };
 
-  if (!question) {
-    return <div>Loading question...</div>;
-  }
+  useEffect(() => {
+    loadQuestion();
+  }, [questionId]);
+
+  const handleAddAnswer = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        const decodedToken = jwtDecode(token);
+        const userId = decodedToken.userId;
+        const response = await answerQuestion(questionId, {
+          content: newAnswer,
+          userId,
+        });
+
+        if (response && response.answerId) {
+          // Reload the question to get the updated answers
+          await loadQuestion();
+          setNewAnswer("");
+        } else {
+          console.error("Unexpected response structure:", response);
+          setError("Failed to post answer. Please try again.");
+        }
+      }
+    } catch (error) {
+      console.error("Error posting answer:", error);
+      setError("Failed to post answer. Please try again.");
+    }
+  };
+
+  if (loading) return <CircularProgress />;
+  if (error) return <Typography color="error">{error}</Typography>;
+  if (!question) return <Typography>Question not found</Typography>;
 
   return (
     <Container maxWidth="md">
@@ -51,7 +71,7 @@ const QuestionDetail = ({ question }) => {
           <Typography variant="h5">{question.title}</Typography>
           <Typography variant="body1">{question.content}</Typography>
           <Typography variant="body2" color="textSecondary">
-            Asked by: {question.user.username}
+            Asked by: {question.user?.username || "Unknown"}
           </Typography>
         </CardContent>
       </Card>
@@ -68,19 +88,28 @@ const QuestionDetail = ({ question }) => {
       <Button variant="contained" color="primary" onClick={handleAddAnswer}>
         Post Reply
       </Button>
+      {error && <Typography color="error">{error}</Typography>}
       <Typography variant="h6" style={{ margin: "20px 0" }}>
         Replies:
       </Typography>
-      {answers.map((answer, index) => (
-        <Card key={index} variant="outlined" style={{ marginTop: "10px" }}>
-          <CardContent>
-            <Typography variant="body1">{answer.content}</Typography>
-            <Typography variant="body2" color="textSecondary">
-              Answered by: {answer.user.username}
-            </Typography>
-          </CardContent>
-        </Card>
-      ))}
+      {question.answers && question.answers.length > 0 ? (
+        question.answers.map((answer) => (
+          <Card
+            key={answer.answerId}
+            variant="outlined"
+            style={{ marginTop: "10px" }}
+          >
+            <CardContent>
+              <Typography variant="body1">{answer.content}</Typography>
+              <Typography variant="body2" color="textSecondary">
+                Answered by: {answer.user?.username || "Unknown"}
+              </Typography>
+            </CardContent>
+          </Card>
+        ))
+      ) : (
+        <Typography>No answers yet.</Typography>
+      )}
     </Container>
   );
 };

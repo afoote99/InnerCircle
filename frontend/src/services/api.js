@@ -94,7 +94,11 @@ export const answerQuestion = async (questionId, answerData) => {
       answerData,
       { headers: getAuthHeader() }
     );
-    return response.data;
+    if (response.data && response.data.answerId) {
+      return response.data;
+    } else {
+      throw new Error("Invalid response from server");
+    }
   } catch (error) {
     console.error("Error answering question:", error);
     throw error;
@@ -202,7 +206,7 @@ export const fetchQuestionById = async (questionId) => {
     });
     return response.data;
   } catch (error) {
-    console.error("Error fetching specific question:", error);
+    console.error("Error fetching question:", error);
     throw error;
   }
 };
