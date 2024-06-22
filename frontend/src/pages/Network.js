@@ -41,14 +41,14 @@ const Network = () => {
       if (token) {
         const decodedToken = jwtDecode(token);
         const userId = decodedToken.userId;
-        await acceptConnectionRequest(userId, requestId);
+        const isPrimary = true; // You can add a checkbox in the UI to let the user decide
+        await acceptConnectionRequest(userId, requestId, isPrimary);
         // Update the network and received requests data
         const networkData = await fetchUserNetwork(userId);
         setNetwork(networkData.connections);
         setReceivedRequests(networkData.receivedRequests);
       } else {
         // Handle case when user is not logged in
-        // Redirect to login page or display a message
       }
     } catch (error) {
       console.error("Error accepting connection request:", error);

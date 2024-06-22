@@ -210,6 +210,7 @@ router.post("/:userId/request", async (req, res) => {
 // Accept a connection request
 router.put("/:userId/request/:requestId/accept", async (req, res) => {
   const { userId, requestId } = req.params;
+  const { isPrimary } = req.body;
 
   try {
     // Find the connection request that is pending and matches the receiver ID
@@ -257,6 +258,7 @@ router.put("/:userId/request/:requestId/accept", async (req, res) => {
         user_id_2: request.receiver_id,
         status: "accepted",
         connected_since: new Date(),
+        isPrimary: isPrimary,
       });
       res.status(200).json(newConnection);
     }
@@ -365,6 +367,43 @@ router.post("/:userId/suggest", async (req, res) => {
     res
       .status(500)
       .json({ error: "An error occurred while suggesting the connection" });
+  }
+});
+
+//check connections for a user
+router.get("/connections/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const connections = await Connection.findAll({
+      where: {
+        [Op.or]: [{ user_id_1: userId }, { user_id_2: userId }],
+        status: "accepted",
+      },
+      include: [
+        { model: User, as: "user1", attributes: ["userId", "username"] },
+        { model: User, as: "user2", attributes: ["userId", "username"] },
+      ],
+    });
+
+    const formattedConnections = connections.map((conn) => ({
+      connectionId: conn.connection_id,
+      isPrimary: conn.isPrimary,
+      user1: {
+        userId: conn.user1.userId,
+        username: conn.user1.username,
+      },
+      user2: {
+        userId: conn.user2.userId,
+        username: conn.user2.username,
+      },
+    }));
+
+    res.json(formattedConnections);
+  } catch (error) {
+    console.error("Error fetching connections:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while fetching connections" });
   }
 });
 

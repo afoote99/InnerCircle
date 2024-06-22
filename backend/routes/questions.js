@@ -4,27 +4,23 @@ const Question = require("../models/question");
 const Answer = require("../models/answer");
 const User = require("../models/user");
 const Connection = require("../models/connection");
+const { Op } = require("sequelize");
 
 // Create a new question
 router.post("/", async (req, res) => {
   try {
-    const { title, content, category, userId, isAnonymous } = req.body;
-    console.log("Received isAnonymous value:", isAnonymous);
-    console.log("Type of isAnonymous value:", typeof isAnonymous);
+    const { title, content, category, userId, scope } = req.body;
 
     const questionData = {
       title,
       content,
       category,
       user_id: userId,
-      is_anonymous: isAnonymous, // Directly assign the value
+      scope,
       posted_date: new Date(),
     };
-    console.log("Question data to be created:", questionData);
 
     const question = await Question.create(questionData);
-
-    console.log("Created question with is_anonymous:", question.is_anonymous);
     res.status(201).json(question);
   } catch (error) {
     console.error("Error creating question:", error);
@@ -33,41 +29,54 @@ router.post("/", async (req, res) => {
       .json({ error: "An error occurred while creating the question" });
   }
 });
-// Get all questions with associated user and answers
-router.get("/", async (req, res) => {
+
+// Get questions for a user's feed
+router.get("/feed", async (req, res) => {
   try {
     const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+
+    console.log(`Fetching questions for user: ${userId}`);
+
+    // Get user's connections
+    const connections = await Connection.findAll({
+      where: {
+        [Op.or]: [{ user_id_1: userId }, { user_id_2: userId }],
+        status: "accepted",
+      },
+    });
+
+    console.log(`Found ${connections.length} connections for user ${userId}`);
+
+    const connectedUserIds = connections.map((conn) =>
+      conn.user_id_1.toString() === userId.toString()
+        ? conn.user_id_2.toString()
+        : conn.user_id_1.toString()
+    );
+
+    const primaryConnections = connections.filter((conn) => conn.isPrimary);
+    const primaryConnectedUserIds = primaryConnections.map((conn) =>
+      conn.user_id_1.toString() === userId.toString()
+        ? conn.user_id_2.toString()
+        : conn.user_id_1.toString()
+    );
+
+    console.log(`Connected user IDs: ${connectedUserIds}`);
+    console.log(`Primary connected user IDs: ${primaryConnectedUserIds}`);
+
     const questions = await Question.findAll({
+      where: {
+        [Op.or]: [
+          { user_id: { [Op.in]: connectedUserIds }, scope: "all" },
+          { user_id: { [Op.in]: primaryConnectedUserIds }, scope: "primary" },
+          { user_id: userId },
+        ],
+      },
       include: [
-        {
-          model: User,
-          as: "user",
-          attributes: ["userId", "username"],
-          include: [
-            {
-              model: Connection,
-              as: "connectionsInitiated", // Specify the alias for this association
-              include: [
-                {
-                  model: User,
-                  as: "user2",
-                  attributes: ["userId", "username"],
-                },
-              ],
-            },
-            {
-              model: Connection,
-              as: "connectionsReceived", // Specify the alias for this association
-              include: [
-                {
-                  model: User,
-                  as: "user1",
-                  attributes: ["userId", "username"],
-                },
-              ],
-            },
-          ],
-        },
+        { model: User, as: "user", attributes: ["userId", "username"] },
         {
           model: Answer,
           as: "answers",
@@ -76,12 +85,42 @@ router.get("/", async (req, res) => {
           ],
         },
       ],
+      order: [["posted_date", "DESC"]],
     });
+
+    console.log(`Found ${questions.length} questions`);
     res.status(200).json(questions);
   } catch (error) {
     console.error("Error retrieving questions:", error);
     res.status(500).json({
       error: "An error occurred while retrieving the questions",
+      details: error.message,
+    });
+  }
+});
+
+// Get all questions with associated user and answers (without visibility filters)
+router.get("/all", async (req, res) => {
+  try {
+    const questions = await Question.findAll({
+      include: [
+        { model: User, as: "user", attributes: ["userId", "username"] },
+        {
+          model: Answer,
+          as: "answers",
+          include: [
+            { model: User, as: "user", attributes: ["userId", "username"] },
+          ],
+        },
+      ],
+      order: [["posted_date", "DESC"]],
+    });
+
+    res.status(200).json(questions);
+  } catch (error) {
+    console.error("Error retrieving all questions:", error);
+    res.status(500).json({
+      error: "An error occurred while retrieving all questions",
       details: error.message,
     });
   }

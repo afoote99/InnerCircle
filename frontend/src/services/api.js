@@ -50,13 +50,9 @@ export const logout = () => {
 
 export const createQuestion = async (questionData) => {
   try {
-    const response = await axios.post(
-      `${API_URL}/questions`,
-      questionData, // Directly pass the questionData
-      {
-        headers: getAuthHeader(),
-      }
-    );
+    const response = await axios.post(`${API_URL}/questions`, questionData, {
+      headers: getAuthHeader(),
+    });
     return response.data;
   } catch (error) {
     console.error("Error creating question:", error);
@@ -66,12 +62,27 @@ export const createQuestion = async (questionData) => {
 
 export const fetchQuestions = async (userId) => {
   try {
-    const response = await axios.get(`${API_URL}/questions?userId=${userId}`, {
+    const response = await axios.get(
+      `${API_URL}/questions/feed?userId=${userId}`,
+      {
+        headers: getAuthHeader(),
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching questions:", error);
+    throw error;
+  }
+};
+
+export const fetchAllQuestions = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/questions/all`, {
       headers: getAuthHeader(),
     });
     return response.data;
   } catch (error) {
-    console.error("Error fetching questions:", error);
+    console.error("Error fetching all questions:", error);
     throw error;
   }
 };
@@ -133,11 +144,11 @@ export const sendConnectionRequest = async (
   }
 };
 
-export const acceptConnectionRequest = async (userId, requestId) => {
+export const acceptConnectionRequest = async (userId, requestId, isPrimary) => {
   try {
     const response = await axios.put(
       `${API_URL}/network/${userId}/request/${requestId}/accept`,
-      null,
+      { isPrimary },
       {
         headers: getAuthHeader(),
       }

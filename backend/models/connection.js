@@ -19,6 +19,12 @@ const Connection = sequelize.define(
       allowNull: false,
       defaultValue: DataTypes.NOW,
     },
+    isPrimary: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "is_primary",
+    },
     user_id_1: {
       type: DataTypes.INTEGER,
       allowNull: false,

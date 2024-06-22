@@ -7,7 +7,7 @@ const CreateQuestion = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("");
-  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [scope, setScope] = useState("all");
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -21,8 +21,8 @@ const CreateQuestion = () => {
           title,
           content,
           category,
-          userId,
-          isAnonymous,
+          userId: parseInt(userId), // Ensure it's an integer
+          scope,
         });
         navigate("/questions");
       } else {
@@ -72,6 +72,13 @@ const CreateQuestion = () => {
           />
         </div>
         */}
+        <div>
+          <label>Scope:</label>
+          <select value={scope} onChange={(e) => setScope(e.target.value)}>
+            <option value="all">All Connections</option>
+            <option value="primary">Primary Connections Only</option>
+          </select>
+        </div>
         <button type="submit">Create Question</button>
       </form>
     </div>

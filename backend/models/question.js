@@ -32,6 +32,11 @@ const Question = sequelize.define("Question", {
   //defaultValue: false,
   // field: "is_anonymous",
   //},
+  scope: {
+    type: DataTypes.ENUM("primary", "all"),
+    allowNull: false,
+    defaultValue: "all",
+  },
 });
 
 User.hasMany(Question, {
