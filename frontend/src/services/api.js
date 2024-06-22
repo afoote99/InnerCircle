@@ -80,10 +80,10 @@ export const answerQuestion = async (questionId, answerData) => {
   try {
     const response = await axios.post(
       `${API_URL}/questions/${questionId}/answer`,
-      answerData,
+      answerData, // This should include both 'content' and 'userId'
       { headers: getAuthHeader() }
     );
-    return response.data;
+    return response.data; // Make sure this returns the complete answer with user details
   } catch (error) {
     console.error("Error answering question:", error);
     throw error;

@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -7,33 +8,40 @@ import {
   TextField,
   Button,
 } from "@mui/material";
+import { fetchQuestionById, answerQuestion } from "../services/api";
 
-const QuestionDetail = ({ question }) => {
-  const [newAnswer, setNewAnswer] = React.useState("");
-  const [answers, setAnswers] = React.useState(question.answers || []);
+const QuestionDetail = () => {
+  const { questionId } = useParams();
+  const [question, setQuestion] = useState(null);
+  const [newAnswer, setNewAnswer] = useState("");
+  const [answers, setAnswers] = useState([]);
+
+  useEffect(() => {
+    const loadQuestion = async () => {
+      const fetchedQuestion = await fetchQuestionById(questionId);
+      if (fetchedQuestion) {
+        setQuestion(fetchedQuestion);
+        setAnswers(fetchedQuestion.answers || []);
+      }
+    };
+
+    loadQuestion();
+  }, [questionId]);
 
   const handleAddAnswer = async () => {
     try {
-      const response = await fetch(
-        `/api/questions/${question.questionId}/answer`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            content: newAnswer,
-            userId: localStorage.getItem("userId"),
-          }),
-        }
+      const userId = localStorage.getItem("userId"); // Make sure this retrieves the correct user ID
+      const answerData = {
+        content: newAnswer,
+        userId, // Include this in the data sent to the backend
+      };
+      const newAnswerResponse = await answerQuestion(
+        question.questionId,
+        answerData
       );
-      const data = await response.json();
-      if (response.ok) {
-        setAnswers([...answers, data]);
-        setNewAnswer("");
-      } else {
-        throw new Error(data.message);
+      if (newAnswerResponse) {
+        setAnswers((prevAnswers) => [...prevAnswers, newAnswerResponse]); // Append the new answer
+        setNewAnswer(""); // Clear the input after posting
       }
     } catch (error) {
       console.error("Error posting answer:", error);
@@ -51,7 +59,7 @@ const QuestionDetail = ({ question }) => {
           <Typography variant="h5">{question.title}</Typography>
           <Typography variant="body1">{question.content}</Typography>
           <Typography variant="body2" color="textSecondary">
-            Asked by: {question.user.username}
+            Asked by: {question.user?.username}
           </Typography>
         </CardContent>
       </Card>
@@ -76,7 +84,7 @@ const QuestionDetail = ({ question }) => {
           <CardContent>
             <Typography variant="body1">{answer.content}</Typography>
             <Typography variant="body2" color="textSecondary">
-              Answered by: {answer.user.username}
+              Answered by: {answer.user?.username || "Anonymous"}
             </Typography>
           </CardContent>
         </Card>

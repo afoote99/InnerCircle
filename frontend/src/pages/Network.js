@@ -3,117 +3,165 @@ import {
   fetchUserNetwork,
   acceptConnectionRequest,
   declineConnectionRequest,
+  sendConnectionRequest,
+  suggestConnection,
 } from "../services/api";
-import moment from "moment";
 import { jwtDecode } from "jwt-decode";
-import ConnectionRequestForm from "../components/ConnectionRequestForm";
-import ConnectionSuggestionForm from "../components/ConnectionSuggestionForm";
+import {
+  Box,
+  Container,
+  Typography,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
+  TextField,
+  Button,
+  Grid,
+} from "@mui/material";
+import moment from "moment";
 
 const Network = () => {
   const [network, setNetwork] = useState([]);
   const [receivedRequests, setReceivedRequests] = useState([]);
+  const [receiverUsername, setReceiverUsername] = useState("");
+  const [user1, setUser1] = useState("");
+  const [user2, setUser2] = useState("");
+  const [note, setNote] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (token) {
-          const decodedToken = jwtDecode(token);
-          const userId = decodedToken.userId;
-          const networkData = await fetchUserNetwork(userId);
-          setNetwork(networkData.connections || []);
-          setReceivedRequests(networkData.receivedRequests || []);
-        } else {
-          // Handle case when user is not logged in
-          // Redirect to login page or display a message
-        }
-      } catch (error) {
-        console.error("Error fetching user network:", error);
+      const token = localStorage.getItem("token");
+      if (token) {
+        const decodedToken = jwtDecode(token);
+        const userId = decodedToken.userId;
+        const networkData = await fetchUserNetwork(userId);
+        setNetwork(networkData.connections || []);
+        setReceivedRequests(networkData.receivedRequests || []);
+      } else {
+        console.error("User is not logged in");
       }
     };
 
     fetchData();
   }, []);
 
-  const handleAcceptRequest = async (requestId) => {
+  const handleSendRequest = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return; // Ensure there is a token
+    const decodedToken = jwtDecode(token);
+    const userId = decodedToken.userId;
     try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        const decodedToken = jwtDecode(token);
-        const userId = decodedToken.userId;
-        await acceptConnectionRequest(userId, requestId);
-        // Update the network and received requests data
-        const networkData = await fetchUserNetwork(userId);
-        setNetwork(networkData.connections);
-        setReceivedRequests(networkData.receivedRequests);
-      } else {
-        // Handle case when user is not logged in
-        // Redirect to login page or display a message
-      }
+      await sendConnectionRequest(userId, receiverUsername, note);
+      // Optionally fetch and update the list of connections
+      const updatedNetwork = await fetchUserNetwork(userId);
+      setNetwork(updatedNetwork.connections || []);
     } catch (error) {
-      console.error("Error accepting connection request:", error);
-      // Show error message to the user
+      console.error("Error sending connection request:", error);
     }
   };
 
-  const handleDeclineRequest = async (requestId) => {
+  const handleSuggestConnection = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return; // Ensure there is a token
+    const decodedToken = jwtDecode(token);
+    const userId = decodedToken.userId;
     try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        const decodedToken = jwtDecode(token);
-        const userId = decodedToken.userId;
-        await declineConnectionRequest(userId, requestId);
-        // Update the received requests data
-        const networkData = await fetchUserNetwork(userId);
-        setReceivedRequests(networkData.receivedRequests);
-      } else {
-        // Handle case when user is not logged in
-        // Redirect to login page or display a message
-      }
+      await suggestConnection(userId, user1, user2, note);
+      // Optionally fetch and update the list of connections
+      const updatedNetwork = await fetchUserNetwork(userId);
+      setNetwork(updatedNetwork.connections || []);
     } catch (error) {
-      console.error("Error declining connection request:", error);
-      // Show error message to the user
+      console.error("Error suggesting connection:", error);
     }
   };
 
   return (
-    <div>
-      <h2>My Network</h2>
-      <h3>Connections</h3>
-      {network &&
-        network.map((connection) => (
-          <div key={connection.connectionId}>
-            <p>
-              {connection.user1?.username} - {connection.user2?.username}
-            </p>
-            <p>
-              Connected since:{" "}
-              {moment(connection.connected_since).format("MM/DD/YYYY")}
-            </p>
-          </div>
-        ))}
-      <h3>Received Requests</h3>
-      {receivedRequests &&
-        receivedRequests.map((request) => (
-          <div key={request.requestId}>
-            {request.suggester && (
-              <p>Suggested by: {request.suggester.username}</p>
-            )}
-            <p>From: {request.sender.username}</p>
-            <p>Note: {request.note}</p>
-            <button onClick={() => handleAcceptRequest(request.requestId)}>
-              Accept
-            </button>
-            <button onClick={() => handleDeclineRequest(request.requestId)}>
-              Decline
-            </button>
-          </div>
-        ))}
-      <h3>Send Connection Request</h3>
-      <ConnectionRequestForm />
-      <h3>Suggest Connection</h3>
-      <ConnectionSuggestionForm />
-    </div>
+    <Container
+      maxWidth="xl"
+      style={{ paddingTop: "100px", backgroundColor: "#FCFBF4" }}
+    >
+      <Box
+        sx={{ display: "flex", justifyContent: "space-between", padding: 2 }}
+      >
+        <Box sx={{ width: "25%", textAlign: "center", marginRight: 2 }}>
+          {/* Connection Request Form */}
+          <TextField
+            label="Receiver Username"
+            variant="outlined"
+            size="small"
+            value={receiverUsername}
+            onChange={(e) => setReceiverUsername(e.target.value)}
+            fullWidth
+          />
+          <Button
+            onClick={handleSendRequest}
+            variant="contained"
+            sx={{ mt: 2 }}
+          >
+            Send Request
+          </Button>
+
+          {/* Connection Suggestion Form */}
+          <TextField
+            label="User 1 Username"
+            variant="outlined"
+            size="small"
+            value={user1}
+            onChange={(e) => setUser1(e.target.value)}
+            fullWidth
+            sx={{ mt: 2 }}
+          />
+          <TextField
+            label="User 2 Username"
+            variant="outlined"
+            size="small"
+            value={user2}
+            onChange={(e) => setUser2(e.target.value)}
+            fullWidth
+            sx={{ mt: 2 }}
+          />
+          <TextField
+            label="Note"
+            variant="outlined"
+            size="small"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            fullWidth
+            sx={{ mt: 2 }}
+          />
+          <Button
+            onClick={handleSuggestConnection}
+            variant="contained"
+            sx={{ mt: 2 }}
+          >
+            Suggest Connection
+          </Button>
+        </Box>
+        <Box sx={{ width: "50%", overflowY: "auto", maxHeight: 500 }}>
+          <Typography variant="h6">{`${network.length} Connections`}</Typography>
+          <List>
+            {network.map((connection) => (
+              <ListItem button key={connection.connectionId}>
+                <ListItemText
+                  primary={`${connection.user1?.username || "Unknown"} - ${
+                    connection.user2?.username || "Unknown"
+                  }`}
+                />
+                <Typography variant="body2">
+                  Connected since:{" "}
+                  {moment(connection.connected_since).format("MM/DD/YYYY")}
+                </Typography>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+        <Box sx={{ width: "25%", textAlign: "center" }}>
+          <Typography variant="h6">Connection Tree</Typography>
+          <Typography>Select a connection to see how you're linked</Typography>
+        </Box>
+      </Box>
+    </Container>
   );
 };
 

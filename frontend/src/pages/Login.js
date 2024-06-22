@@ -1,14 +1,28 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../services/api";
-import {
-  Button,
-  TextField,
-  Typography,
-  Container,
-  Box,
-  Link,
-} from "@mui/material";
+import { Button, TextField, Typography, Container, Box } from "@mui/material";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: "#717C87",
+    },
+    secondary: {
+      main: "#71490D",
+    },
+    background: {
+      default: "#FCFBF4",
+      paper: "#FCFBF4",
+    },
+    text: {
+      primary: "#717C87",
+      secondary: "#717C87",
+    },
+  },
+});
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -27,62 +41,88 @@ const Login = () => {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Container
+        component="main"
+        maxWidth="xs"
         sx={{
-          marginTop: 8,
+          height: "100vh",
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        <Typography component="h1" variant="h5">
-          Zerkel
-        </Typography>
-        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-          <TextField
-            variant="outlined"
-            margin="normal"
-            required
-            fullWidth
-            id="email"
-            label="Email Address"
-            name="email"
-            autoComplete="email"
-            autoFocus
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <TextField
-            variant="outlined"
-            margin="normal"
-            required
-            fullWidth
-            name="password"
-            label="Password"
-            type="password"
-            id="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{ mt: 3, mb: 2 }}
-          >
-            Login
-          </Button>
-          <Typography variant="body2" color="textSecondary" align="center">
-            Don't have an account?{" "}
-            <Link href="/register" variant="body2">
-              Sign up
-            </Link>
+        <Box
+          sx={{
+            padding: 3,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <Typography component="h1" variant="h5" color="text.primary">
+            innerlinQ
           </Typography>
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            noValidate
+            sx={{ mt: 1 }}
+          >
+            <TextField
+              variant="outlined"
+              margin="normal"
+              required
+              fullWidth
+              id="email"
+              label="Email Address"
+              name="email"
+              autoComplete="email"
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              color="secondary"
+            />
+            <TextField
+              variant="outlined"
+              margin="normal"
+              required
+              fullWidth
+              name="password"
+              label="Password"
+              type="password"
+              id="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              color="secondary"
+            />
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              color="primary"
+              sx={{ mt: 3, mb: 2 }}
+            >
+              Login
+            </Button>
+            <Typography variant="body2" color="text.secondary" align="center">
+              Don't have an account?{" "}
+              <Typography
+                component="a"
+                href="/register"
+                variant="body2"
+                color="primary"
+                style={{ textDecoration: "none" }}
+              >
+                Sign up
+              </Typography>
+            </Typography>
+          </Box>
         </Box>
-      </Box>
-    </Container>
+      </Container>
+    </ThemeProvider>
   );
 };
 

@@ -90,14 +90,22 @@ router.get("/", async (req, res) => {
 // Answer a question
 router.post("/:questionId/answer", async (req, res) => {
   try {
-    const { questionId } = req.params;
     const { content, userId } = req.body;
     const answer = await Answer.create({
       content,
       user_id: userId,
-      question_id: questionId,
+      question_id: req.params.questionId,
     });
-    res.status(201).json(answer);
+    const fullAnswer = await Answer.findByPk(answer.id, {
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["username"],
+        },
+      ],
+    });
+    res.status(201).json(fullAnswer);
   } catch (error) {
     console.error("Error answering question:", error);
     res
