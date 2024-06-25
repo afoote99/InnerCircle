@@ -41,6 +41,14 @@ const Connection = sequelize.define(
         key: "user_id",
       },
     },
+    suggester_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: User,
+        key: "user_id",
+      },
+    },
   },
   {
     tableName: "Connections",
@@ -72,6 +80,10 @@ User.hasMany(Connection, {
 User.hasMany(Connection, {
   foreignKey: "user_id_2",
   as: "connectionsReceived",
+});
+Connection.belongsTo(User, {
+  foreignKey: "suggester_id",
+  as: "suggester",
 });
 
 module.exports = Connection;

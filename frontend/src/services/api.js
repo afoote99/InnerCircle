@@ -131,15 +131,13 @@ export const fetchUserProfile = async (userId) => {
 
 export const sendConnectionRequest = async (
   userId,
-  { receiverUsername, note }
+  { receiverUsername, note, isPrimary }
 ) => {
   try {
     const response = await axios.post(
       `${API_URL}/network/${userId}/request`,
-      { receiverUsername, note },
-      {
-        headers: getAuthHeader(),
-      }
+      { receiverUsername, note, isPrimary },
+      { headers: getAuthHeader() }
     );
     return response.data;
   } catch (error) {
@@ -207,6 +205,22 @@ export const fetchQuestionById = async (questionId) => {
     return response.data;
   } catch (error) {
     console.error("Error fetching question:", error);
+    throw error;
+  }
+};
+
+//getting connection tree
+export const fetchConnectionTree = async (userId, targetId) => {
+  try {
+    const response = await axios.get(
+      `${API_URL}/network/${userId}/tree/${targetId}`,
+      {
+        headers: getAuthHeader(),
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching connection tree:", error);
     throw error;
   }
 };

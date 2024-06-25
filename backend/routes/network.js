@@ -6,6 +6,90 @@ const User = require("../models/user");
 const { Op } = require("sequelize");
 const moment = require("moment");
 
+//building the network tree
+const buildConnectionTree = async (userId, targetId, visited = new Set()) => {
+  if (visited.has(userId)) return null;
+  visited.add(userId);
+
+  const connections = await Connection.findAll({
+    where: {
+      [Op.or]: [{ user_id_1: userId }, { user_id_2: userId }],
+      status: "accepted",
+    },
+    include: [
+      { model: User, as: "user1", attributes: ["userId", "username"] },
+      { model: User, as: "user2", attributes: ["userId", "username"] },
+      { model: User, as: "suggester", attributes: ["userId", "username"] },
+    ],
+  });
+
+  for (let conn of connections) {
+    const otherUserId =
+      conn.user_id_1 === userId ? conn.user_id_2 : conn.user_id_1;
+    if (otherUserId === targetId) {
+      return [
+        {
+          id: userId,
+          username:
+            conn.user_id_1 === userId
+              ? conn.user1.username
+              : conn.user2.username,
+        },
+        conn.suggester_id
+          ? { id: conn.suggester_id, username: conn.suggester.username }
+          : null,
+        {
+          id: otherUserId,
+          username:
+            conn.user_id_1 === otherUserId
+              ? conn.user1.username
+              : conn.user2.username,
+        },
+      ].filter(Boolean);
+    }
+
+    const subTree = await buildConnectionTree(otherUserId, targetId, visited);
+    if (subTree) {
+      return [
+        {
+          id: userId,
+          username:
+            conn.user_id_1 === userId
+              ? conn.user1.username
+              : conn.user2.username,
+        },
+        conn.suggester_id
+          ? { id: conn.suggester_id, username: conn.suggester.username }
+          : null,
+        ...subTree,
+      ].filter(Boolean);
+    }
+  }
+
+  return null;
+};
+
+//tree route
+router.get("/:userId/tree/:targetId", async (req, res) => {
+  try {
+    const { userId, targetId } = req.params;
+    const tree = await buildConnectionTree(
+      parseInt(userId),
+      parseInt(targetId)
+    );
+    if (tree) {
+      res.json(tree);
+    } else {
+      res.status(404).json({ message: "Connection not found" });
+    }
+  } catch (error) {
+    console.error("Error getting connection tree:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while getting the connection tree" });
+  }
+});
+
 // Get user's network
 router.get("/:userId", async (req, res) => {
   try {
@@ -13,6 +97,7 @@ router.get("/:userId", async (req, res) => {
     const connections = await Connection.findAll({
       where: {
         [Op.or]: [{ user_id_1: userId }, { user_id_2: userId }],
+        status: "accepted",
       },
       include: [
         {
@@ -25,17 +110,20 @@ router.get("/:userId", async (req, res) => {
           as: "user2",
           attributes: ["user_id", "username"],
         },
+        {
+          model: User,
+          as: "suggester",
+          attributes: ["user_id", "username"],
+        },
       ],
     });
 
-    if (!connections) {
-      return res.status(404).json({ error: "User connections not found" });
-    }
-
+    // In the "Get user's network" route
     const formattedConnections = connections.map((conn) => ({
       connectionId: conn.connection_id,
       status: conn.status,
-      connected_since: moment(conn.connected_since).toISOString(), // Format date to ISO string
+      connected_since: moment(conn.connected_since).toISOString(),
+      isPrimary: conn.isPrimary,
       user1: {
         userId: conn.user1.user_id,
         username: conn.user1.username,
@@ -44,7 +132,17 @@ router.get("/:userId", async (req, res) => {
         userId: conn.user2.user_id,
         username: conn.user2.username,
       },
+      suggester: conn.suggester
+        ? {
+            userId: conn.suggester.user_id,
+            username: conn.suggester.username,
+          }
+        : null,
     }));
+
+    // Also update the "check connections for a user" route similarly
+
+    console.log("Formatted connections:", formattedConnections);
 
     // Retrieve received connection requests
     const receivedRequests = await ConnectionRequest.findAll({
@@ -142,7 +240,7 @@ router.put("/:userId", async (req, res) => {
 router.post("/:userId/request", async (req, res) => {
   try {
     const { userId } = req.params;
-    const { receiverUsername, note } = req.body;
+    const { receiverUsername, note, isPrimary } = req.body;
 
     // Find the receiver user by username
     const receiver = await User.findOne({
@@ -188,8 +286,9 @@ router.post("/:userId/request", async (req, res) => {
     // Create a new connection request with a note
     const newRequest = await ConnectionRequest.create({
       sender_id: userId,
-      receiver_id: receiver.userId, // Use 'userId' instead of 'user_id'
-      note: note, // Include the note
+      receiver_id: receiver.userId,
+      note: note,
+      isPrimary: isPrimary, // Add this line
     });
 
     res.status(201).json(newRequest);
@@ -210,10 +309,8 @@ router.post("/:userId/request", async (req, res) => {
 // Accept a connection request
 router.put("/:userId/request/:requestId/accept", async (req, res) => {
   const { userId, requestId } = req.params;
-  const { isPrimary } = req.body;
 
   try {
-    // Find the connection request that is pending and matches the receiver ID
     const request = await ConnectionRequest.findOne({
       where: { request_id: requestId, receiver_id: userId, status: "pending" },
     });
@@ -222,46 +319,24 @@ router.put("/:userId/request/:requestId/accept", async (req, res) => {
       return res.status(404).json({ error: "Connection request not found" });
     }
 
-    // Update the request status to "accepted"
     request.status = "accepted";
     await request.save();
 
-    if (request.suggester_id) {
-      // If it's a suggested connection, check if the corresponding request for the other user is also accepted
-      const correspondingRequest = await ConnectionRequest.findOne({
-        where: {
-          sender_id: request.receiver_id,
-          receiver_id: request.sender_id,
-          status: "accepted",
-          suggester_id: request.suggester_id,
-        },
-      });
+    const isPrimary = !request.suggester_id; // Set isPrimary to false if it's a suggested connection
+    const suggester_id = request.suggester_id;
 
-      if (correspondingRequest) {
-        // Create a new connection if both requests are accepted
-        const newConnection = await Connection.create({
-          user_id_1: request.sender_id,
-          user_id_2: request.receiver_id,
-          status: "accepted",
-          connected_since: new Date(),
-        });
-        res.status(200).json(newConnection);
-      } else {
-        res
-          .status(200)
-          .json({ message: "Suggested connection request accepted" });
-      }
-    } else {
-      // If it's a normal connection request, create the connection immediately
-      const newConnection = await Connection.create({
-        user_id_1: request.sender_id,
-        user_id_2: request.receiver_id,
-        status: "accepted",
-        connected_since: new Date(),
-        isPrimary: isPrimary,
-      });
-      res.status(200).json(newConnection);
-    }
+    const newConnection = await Connection.create({
+      user_id_1: request.sender_id,
+      user_id_2: request.receiver_id,
+      status: "accepted",
+      connected_since: new Date(),
+      isPrimary: isPrimary,
+      suggester_id: suggester_id,
+    });
+
+    console.log("Created connection:", newConnection.toJSON());
+
+    res.status(200).json(newConnection);
   } catch (error) {
     console.error("Error accepting connection request:", error);
     res.status(500).json({
@@ -380,22 +455,31 @@ router.get("/connections/:userId", async (req, res) => {
         status: "accepted",
       },
       include: [
-        { model: User, as: "user1", attributes: ["userId", "username"] },
-        { model: User, as: "user2", attributes: ["userId", "username"] },
+        { model: User, as: "user1", attributes: ["user_id", "username"] },
+        { model: User, as: "user2", attributes: ["user_id", "username"] },
+        { model: User, as: "suggester", attributes: ["user_id", "username"] },
       ],
     });
 
     const formattedConnections = connections.map((conn) => ({
       connectionId: conn.connection_id,
+      status: conn.status,
+      connected_since: moment(conn.connected_since).toISOString(),
       isPrimary: conn.isPrimary,
       user1: {
-        userId: conn.user1.userId,
+        userId: conn.user1.user_id,
         username: conn.user1.username,
       },
       user2: {
-        userId: conn.user2.userId,
+        userId: conn.user2.user_id,
         username: conn.user2.username,
       },
+      suggester: conn.suggester
+        ? {
+            userId: conn.suggester.user_id,
+            username: conn.suggester.username,
+          }
+        : null,
     }));
 
     res.json(formattedConnections);

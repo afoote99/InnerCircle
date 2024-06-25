@@ -13,7 +13,11 @@ const ConnectionRequestForm = () => {
       if (token) {
         const decodedToken = jwtDecode(token);
         const userId = decodedToken.userId;
-        await sendConnectionRequest(userId, { receiverUsername, note });
+        await sendConnectionRequest(userId, {
+          receiverUsername,
+          note,
+          isPrimary: true,
+        });
         setReceiverUsername("");
         setNote("");
         // Show success message or handle the response as needed

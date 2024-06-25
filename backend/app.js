@@ -13,6 +13,7 @@ const Connection = require("./models/connection");
 const Question = require("./models/question");
 const Answer = require("./models/answer");
 const UserInteraction = require("./models/userInteraction");
+const ConnectionRequest = require("./models/connectionRequest");
 
 const app = express();
 

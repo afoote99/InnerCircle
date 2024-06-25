@@ -1,17 +1,24 @@
-import React, { useEffect, useState } from "react";
-import {
-  fetchUserNetwork,
-  acceptConnectionRequest,
-  declineConnectionRequest,
-} from "../services/api";
-import moment from "moment";
+import React, { useState, useEffect } from "react";
+import { fetchUserNetwork } from "../services/api";
 import { jwtDecode } from "jwt-decode";
-import ConnectionRequestForm from "../components/ConnectionRequestForm";
-import ConnectionSuggestionForm from "../components/ConnectionSuggestionForm";
+import {
+  Typography,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  Dialog,
+  DialogContent,
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import ConnectionTree from "../components/ConnectionTree";
 
 const Network = () => {
   const [network, setNetwork] = useState([]);
-  const [receivedRequests, setReceivedRequests] = useState([]);
+  const [selectedConnection, setSelectedConnection] = useState(null);
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -20,12 +27,11 @@ const Network = () => {
         if (token) {
           const decodedToken = jwtDecode(token);
           const userId = decodedToken.userId;
+          setCurrentUserId(userId);
           const networkData = await fetchUserNetwork(userId);
           setNetwork(networkData.connections || []);
-          setReceivedRequests(networkData.receivedRequests || []);
         } else {
-          // Handle case when user is not logged in
-          // Redirect to login page or display a message
+          navigate("/login");
         }
       } catch (error) {
         console.error("Error fetching user network:", error);
@@ -33,86 +39,76 @@ const Network = () => {
     };
 
     fetchData();
-  }, []);
+  }, [navigate]);
 
-  const handleAcceptRequest = async (requestId) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        const decodedToken = jwtDecode(token);
-        const userId = decodedToken.userId;
-        const isPrimary = true; // You can add a checkbox in the UI to let the user decide
-        await acceptConnectionRequest(userId, requestId, isPrimary);
-        // Update the network and received requests data
-        const networkData = await fetchUserNetwork(userId);
-        setNetwork(networkData.connections);
-        setReceivedRequests(networkData.receivedRequests);
-      } else {
-        // Handle case when user is not logged in
-      }
-    } catch (error) {
-      console.error("Error accepting connection request:", error);
-      // Show error message to the user
+  const handleConnectionClick = (connection) => {
+    console.log("Clicked connection:", connection);
+
+    const targetId =
+      connection.user1.userId === currentUserId
+        ? connection.user2.userId
+        : connection.user1.userId;
+
+    if (targetId) {
+      setSelectedConnection({ ...connection, targetId });
+      setOpen(true);
+    } else {
+      console.error("Target user ID is undefined", connection);
+      // You might want to show an error message to the user here
     }
   };
 
-  const handleDeclineRequest = async (requestId) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        const decodedToken = jwtDecode(token);
-        const userId = decodedToken.userId;
-        await declineConnectionRequest(userId, requestId);
-        // Update the received requests data
-        const networkData = await fetchUserNetwork(userId);
-        setReceivedRequests(networkData.receivedRequests);
-      } else {
-        // Handle case when user is not logged in
-        // Redirect to login page or display a message
-      }
-    } catch (error) {
-      console.error("Error declining connection request:", error);
-      // Show error message to the user
-    }
+  const handleClose = () => {
+    setOpen(false);
   };
 
   return (
-    <div>
-      <h2>My Network</h2>
-      <h3>Connections</h3>
-      {network &&
-        network.map((connection) => (
-          <div key={connection.connectionId}>
-            <p>
-              {connection.user1?.username} - {connection.user2?.username}
-            </p>
-            <p>
-              Connected since:{" "}
-              {moment(connection.connected_since).format("MM/DD/YYYY")}
-            </p>
-          </div>
-        ))}
-      <h3>Received Requests</h3>
-      {receivedRequests &&
-        receivedRequests.map((request) => (
-          <div key={request.requestId}>
-            {request.suggester && (
-              <p>Suggested by: {request.suggester.username}</p>
-            )}
-            <p>From: {request.sender.username}</p>
-            <p>Note: {request.note}</p>
-            <button onClick={() => handleAcceptRequest(request.requestId)}>
-              Accept
-            </button>
-            <button onClick={() => handleDeclineRequest(request.requestId)}>
-              Decline
-            </button>
-          </div>
-        ))}
-      <h3>Send Connection Request</h3>
-      <ConnectionRequestForm />
-      <h3>Suggest Connection</h3>
-      <ConnectionSuggestionForm />
+    <div style={{ padding: "20px" }}>
+      <Typography variant="h4" gutterBottom>
+        My Network
+      </Typography>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => navigate("/add-connection")}
+        style={{ marginRight: "10px" }}
+      >
+        Add Connection
+      </Button>
+      <Button
+        variant="contained"
+        color="secondary"
+        onClick={() => navigate("/suggest-connection")}
+      >
+        Suggest Connection
+      </Button>
+      <List>
+        {network.map((connection) => {
+          const otherUser =
+            connection.user1.userId === currentUserId
+              ? connection.user2
+              : connection.user1;
+          return (
+            <ListItem
+              button
+              key={connection.connectionId}
+              onClick={() => handleConnectionClick(connection)}
+            >
+              <ListItemText primary={otherUser.username} />
+            </ListItem>
+          );
+        })}
+      </List>
+      <Dialog open={open} onClose={handleClose}>
+        <DialogContent>
+          {selectedConnection && (
+            <ConnectionTree
+              userId={currentUserId}
+              targetId={selectedConnection.targetId}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
